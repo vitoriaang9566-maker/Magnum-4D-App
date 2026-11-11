@@ -1,0 +1,27 @@
+name: Auto Fetch 4D Results
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests supabase
+
+      - name: Run fetch script
+        env:
+          SUPABASE_URL: "https://tpsthytjwauxnjzhxlot.supabase.co"
+          SUPABASE_KEY: "sb_publishable_OlZGJ7WnMLYk51A-j6yw2w_18WUo-ax"
+        run: python fetch_script.py
