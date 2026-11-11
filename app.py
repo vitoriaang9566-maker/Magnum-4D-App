@@ -7,19 +7,76 @@ from supabase import create_client, Client
 
 st.set_page_config(page_title="4D 助手", page_icon="🎰", layout="wide")
 
+# 注入高级 CSS 美化 (深色极简风)
 st.markdown("""
 <style>
+    /* 隐藏默认菜单 */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .block-container {padding-top: 1rem; padding-bottom: 1rem;}
-    h1 {font-size: 1.5rem !important;}
-    h2 {font-size: 1.2rem !important;}
-    p {font-size: 0.9rem !important;}
+    
+    /* 整体背景色和字体 */
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+    
+    /* 顶部大标题 */
+    h1 {
+        text-align: center;
+        color: #FFD700;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding-bottom: 20px;
+    }
+    
+    /* 数据概览卡片 */
+    .metric-card {
+        background-color: #1E232F;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
+    }
+    .metric-card h3 {
+        color: #A0A5B1;
+        font-size: 14px !important;
+        margin-bottom: 5px;
+    }
+    .metric-card p {
+        color: #00FF7F;
+        font-size: 28px !important;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    /* 推荐结果卡片 */
+    .result-card {
+        background-color: #1E232F;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-left: 5px solid #444;
+    }
+    .result-freq { border-left-color: #00BFFF; }
+    .result-markov { border-left-color: #FFD700; }
+    .result-random { border-left-color: #FF4500; }
+    
+    /* 按钮样式 */
+    .stButton>button {
+        width: 100%;
+        background-color: #FF4B4B;
+        color: white;
+        border-radius: 10px;
+        border: none;
+        padding: 15px;
+        font-size: 18px !important;
+        font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手 (V6.1)</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🎰 4D 预测助手 (V6.2 UI版)</h1>", unsafe_allow_html=True)
 
 @st.cache_resource
 def init_connection():
@@ -39,7 +96,6 @@ def load_history_data():
                 prizes.append(row['prize_1'])
     except Exception:
         pass
-    
     try:
         res = supabase.table("predictions").select("actual_prize").neq("actual_prize", "").execute()
         for r in res.data:
@@ -47,8 +103,25 @@ def load_history_data():
                 prizes.append(r['actual_prize'])
     except Exception:
         pass
-        
     return prizes
+
+# --- 顶部数据概览卡片 ---
+try:
+    res = supabase.table("predictions").select("*").execute()
+    all_data = res.data
+    total_pred = len([d for d in all_data if d['model'] != "Manual_Entry"])
+    total_hits = sum(1 for d in all_data if d['is_hit'])
+    win_rate = (total_hits / total_pred * 100) if total_pred > 0 else 0.0
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f'<div class="metric-card"><h3>总预测期数</h3><p>{total_pred}</p></div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown(f'<div class="metric-card"><h3>累计命中</h3><p>{total_hits}</p></div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown(f'<div class="metric-card"><h3>当前胜率</h3><p>{win_rate:.2f}%</p></div>', unsafe_allow_html=True)
+except Exception:
+    pass
 
 tab1, tab2, tab3 = st.tabs(["🔮 预测", "📊 对账", "📥 录入新开奖"])
 
@@ -100,9 +173,9 @@ with tab1:
                 st.error(f"❌ 数据库写入失败: {e}")
                 
             st.markdown("### 🏆 推荐结果")
-            st.info(f"**频率模型：** {', '.join(top10_freq)}")
-            st.warning(f"**马尔可夫模型：** {', '.join(top10_markov)}")
-            st.error(f"**随机对照组：** {', '.join(top10_random)}")
+            st.markdown(f'<div class="result-card result-freq"><b>🔵 频率模型:</b> {", ".join(top10_freq)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-markov"><b>🟡 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-random"><b>🔴 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
 with tab2:
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
