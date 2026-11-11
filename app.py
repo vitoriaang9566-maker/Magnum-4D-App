@@ -20,10 +20,11 @@ st.markdown("""
 
 st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手</h1>", unsafe_allow_html=True)
 
+# 直接将密钥写在代码里，不再依赖 Secrets
 @st.cache_resource
 def init_connection():
-    url = st.secrets["SUPABASE_URL"]
-    key = st.secrets["SUPABASE_KEY"]
+    url = "https://tpsthytjwauxnjzhxlot.supabase.co"
+    key = "sb_publishable_OlZGJ7WnMLYk51A-j6yw2w_18WUo-ax"
     return create_client(url, key)
 
 supabase = init_connection()
