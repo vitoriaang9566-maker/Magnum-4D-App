@@ -84,15 +84,15 @@ with tab1:
             last_prize = prizes[-1]
             predicted_last = max(transition[last_prize[-1]].items(), key=lambda x: x[1])[0] if transition[last_prize[-1]] else "0"
             
-            # 简单组合一组马尔可夫推荐号
-            top10_markov = []
-            for num, count in freq.most_common(50):
-            if num[-1] == predicted_last and num not in top10_markov:
-                top10_markov.append(num)
-            if len(top10_markov) >= 10:
-                break
-            if len(top10_markov) < 10:
-                top10_markov.extend(top10_freq[:10-len(top10_markov)])
+           # 简单组合一组马尔可夫推荐号
+top10_markov = []
+for num, count in freq.most_common(50):
+    if num[-1] == predicted_last and num not in top10_markov:
+        top10_markov.append(num)
+    if len(top10_markov) >= 10:
+        break
+if len(top10_markov) < 10:
+    top10_markov.extend(top10_freq[:10-len(top10_markov)])
             
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
