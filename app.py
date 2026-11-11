@@ -91,21 +91,47 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     }
 
-    /* 黑金标签页 (Tabs) */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: rgba(17, 24, 39, 0.8);
-        border: 1px solid rgba(255, 215, 0, 0.3);
-        border-radius: 8px;
-        color: #A0A5B1;
-        padding: 10px 20px;
+    /* ====== 自定义导航按钮（金框大卡片） ====== */
+    div.stRadio > div[role="radiogroup"] {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        padding: 20px 0;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: rgba(255, 215, 0, 0.1) !important;
-        color: #FFD700 !important;
+    /* 隐藏默认的单选框圆圈 */
+    div.stRadio > div[role="radiogroup"] label > div:first-child {
+        display: none;
+    }
+    /* 自定义按钮卡片样式 */
+    div.stRadio > div[role="radiogroup"] label {
+        background-color: rgba(17, 24, 39, 0.8);
+        border: 1px solid rgba(255, 215, 0, 0.4);
+        border-radius: 12px;
+        padding: 15px 30px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    }
+    div.stRadio > div[role="radiogroup"] label:hover {
+        border-color: #FFD700;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    /* 选中状态 */
+    div.stRadio > div[role="radiogroup"] label[data-checked="true"] {
+        background-color: rgba(255, 215, 0, 0.15) !important;
         border: 1px solid #FFD700 !important;
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.6) !important;
+    }
+    div.stRadio > div[role="radiogroup"] label[data-checked="true"] p {
+        color: #FFD700 !important;
         font-weight: bold;
-        box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        font-size: 1.2rem !important;
+    }
+    div.stRadio > div[role="radiogroup"] label p {
+        color: #E5E7EB;
+        font-size: 1.1rem;
+        margin: 0;
     }
 
     /* 黑金提示框 */
@@ -169,9 +195,19 @@ try:
 except Exception:
     pass
 
-tab1, tab2, tab3 = st.tabs(["🔮 预测", "📊 对账", "📥 录入新开奖"])
+# ================= 自定义导航菜单 =================
+# 用水平单选框来模拟卡片切换
+menu = st.radio(
+    "导航",
+    ["🔮 预测", "📊 对账", "📥 录入新开奖"],
+    horizontal=True,
+    label_visibility="collapsed"
+)
 
-with tab1:
+st.divider()
+
+# ================= 内容区域 =================
+if menu == "🔮 预测":
     st.markdown("<h2>生成下一期预测矩阵</h2>", unsafe_allow_html=True)
     st.write("基于历史数据，同时生成：频率模型、马尔可夫模型、随机对照组。")
     
@@ -223,7 +259,7 @@ with tab1:
             st.markdown(f'<div class="result-card result-markov"><b style="color:#FFD700;">👑 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="result-card result-random"><b style="color:#FF4500;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
-with tab2:
+elif menu == "📊 对账":
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
     
     with st.form("input_form"):
@@ -285,7 +321,7 @@ with tab2:
     except Exception as e:
         st.error(f"❌ 历史记录读取失败: {e}")
 
-with tab3:
+elif menu == "📥 录入新开奖":
     st.markdown("<h2>手动录入新开奖结果</h2>", unsafe_allow_html=True)
     st.write("将最新的开奖结果永久写入云端。")
     
