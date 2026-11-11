@@ -94,7 +94,7 @@ for num, count in freq.most_common(50):
 if len(top10_markov) < 10:
     top10_markov.extend(top10_freq[:10-len(top10_markov)])
             
-            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             try:
                 # 写入数据库
