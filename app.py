@@ -96,7 +96,7 @@ if len(top10_markov) < 10:
             
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            try:
+try:
                 # 写入数据库
                 supabase.table("predictions").insert([
                     {"prediction_time": now_str, "model": "Frequency", "top10": ", ".join(top10_freq), "actual_prize": "", "is_hit": False},
@@ -107,10 +107,10 @@ now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
                 st.error(f"❌ 数据库写入失败: {e}")
                 
-            st.markdown("### 🏆 推荐结果")
-            st.info(f"**频率模型：** {', '.join(top10_freq)}")
-            st.warning(f"**马尔可夫模型：** {', '.join(top10_markov)}")
-            st.error(f"**随机对照组：** {', '.join(top10_random)}")
+        st.markdown("### 🏆 推荐结果")
+        st.info(f"**频率模型：** {', '.join(top10_freq)}")
+        st.warning(f"**马尔可夫模型：** {', '.join(top10_markov)}")
+        st.error(f"**随机对照组：** {', '.join(top10_random)}")
 
 with tab2:
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
