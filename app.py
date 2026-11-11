@@ -43,9 +43,13 @@ st.markdown("""
     div[data-testid="stNotification"] { background-color: rgba(17, 24, 39, 0.95) !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 10px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
     div[data-testid="stNotification"] p { color: #FFD700 !important; font-weight: bold; }
     
-    /* 黑化输入框 */
-    div[data-baseweb="input"] { background-color: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255, 215, 0, 0.3) !important; }
-    div[data-baseweb="input"] input { color: #FFD700 !important; }
+    /* 终极黑化输入框 */
+    div[data-testid="stTextInput"] input {
+        background-color: #1E232F !important;
+        color: #FFD700 !important;
+        border: 1px solid rgba(255, 215, 0, 0.5) !important;
+        border-radius: 8px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -136,7 +140,7 @@ if menu == "预测":
             # ============ 修复去重的核心逻辑 ============
             top10_markov = []
             # 第一轮：优先找尾数匹配的高频号
-            for num, count in freq.most_common(100): # 扩大到100，防止不够10个
+            for num, count in freq.most_common(100):
                 if num[-1] == predicted_last and num not in top10_markov:
                     top10_markov.append(num)
                 if len(top10_markov) >= 10:
