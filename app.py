@@ -324,6 +324,7 @@ elif menu == "最新开奖与抓取":
                 
                 st.success(f"✅ 抓取成功！日期: {draw_date}")
                 
+                # 这里就是那个带 unsafe_allow_html=True 的完整黑金开奖卡片
                 st.markdown(f"""
                 <div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-top: 15px; box-shadow: 0 0 20px rgba(255,215,0,0.1);">
                     <h3 style="color: #FFD700; text-align: center; margin-bottom: 25px; font-family: 'Georgia', serif; font-size: 1.8rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">🎉 {draw_date} 开奖详情</h3>
