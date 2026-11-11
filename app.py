@@ -19,7 +19,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手 (V6.1 模型对战版)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手 (V6.1)</h1>", unsafe_allow_html=True)
 
 @st.cache_resource
 def init_connection():
@@ -29,7 +29,6 @@ def init_connection():
 
 supabase = init_connection()
 
-# 读取历史数据
 @st.cache_data
 def load_history_data():
     prizes = []
@@ -41,7 +40,6 @@ def load_history_data():
     except Exception:
         pass
     
-    # 加上云端的新数据
     try:
         res = supabase.table("predictions").select("actual_prize").neq("actual_prize", "").execute()
         for r in res.data:
@@ -65,16 +63,12 @@ with tab1:
                 st.error("历史数据太少，无法预测。")
                 st.stop()
                 
-            # 1. 频率模型
             freq = Counter(prizes)
             top10_freq = [num for num, count in freq.most_common(10)]
             
-            # 2. 随机模型 (对照组)
             all_10000 = [f"{i:04d}" for i in range(10000)]
             top10_random = random.sample(all_10000, 10)
             
-            # 3. 马尔可夫模型 (简化的数字转移，这里演示用尾数转移)
-            # 这里为了速度，我们只统计最后一位的转移概率
             transition = defaultdict(lambda: defaultdict(int))
             for i in range(len(prizes) - 1):
                 current_last = prizes[i][-1]
@@ -84,20 +78,18 @@ with tab1:
             last_prize = prizes[-1]
             predicted_last = max(transition[last_prize[-1]].items(), key=lambda x: x[1])[0] if transition[last_prize[-1]] else "0"
             
-           # 简单组合一组马尔可夫推荐号
-top10_markov = []
-for num, count in freq.most_common(50):
-    if num[-1] == predicted_last and num not in top10_markov:
-        top10_markov.append(num)
-    if len(top10_markov) >= 10:
-        break
-if len(top10_markov) < 10:
-    top10_markov.extend(top10_freq[:10-len(top10_markov)])
+            top10_markov = []
+            for num, count in freq.most_common(50):
+                if num[-1] == predicted_last and num not in top10_markov:
+                    top10_markov.append(num)
+                if len(top10_markov) >= 10:
+                    break
+            if len(top10_markov) < 10:
+                top10_markov.extend(top10_freq[:10-len(top10_markov)])
             
-now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-try:
-                # 写入数据库
+            try:
                 supabase.table("predictions").insert([
                     {"prediction_time": now_str, "model": "Frequency", "top10": ", ".join(top10_freq), "actual_prize": "", "is_hit": False},
                     {"prediction_time": now_str, "model": "Markov", "top10": ", ".join(top10_markov), "actual_prize": "", "is_hit": False},
@@ -107,10 +99,10 @@ try:
             except Exception as e:
                 st.error(f"❌ 数据库写入失败: {e}")
                 
-        st.markdown("### 🏆 推荐结果")
-        st.info(f"**频率模型：** {', '.join(top10_freq)}")
-        st.warning(f"**马尔可夫模型：** {', '.join(top10_markov)}")
-        st.error(f"**随机对照组：** {', '.join(top10_random)}")
+            st.markdown("### 🏆 推荐结果")
+            st.info(f"**频率模型：** {', '.join(top10_freq)}")
+            st.warning(f"**马尔可夫模型：** {', '.join(top10_markov)}")
+            st.error(f"**随机对照组：** {', '.join(top10_random)}")
 
 with tab2:
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
@@ -134,7 +126,8 @@ with tab2:
                         for r in pending:
                             is_hit = actual_prize in r['top10'].split(', ')
                             if is_hit:
-                                hits_by_model[r['model']] += 1
+                                if r['model'] in hits_by_model:
+                                    hits_by_model[r['model']] += 1
                             
                             supabase.table("predictions").update({
                                 "actual_prize": actual_prize,
