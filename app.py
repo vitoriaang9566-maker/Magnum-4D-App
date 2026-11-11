@@ -98,9 +98,9 @@ st.markdown("""
         gap: 20px;
         padding: 20px 0;
     }
-    /* 隐藏默认的单选框圆圈 */
+    /* 暴力隐藏所有默认的单选框小圆点 */
     div.stRadio > div[role="radiogroup"] label > div:first-child {
-        display: none;
+        display: none !important;
     }
     /* 自定义按钮卡片样式 */
     div.stRadio > div[role="radiogroup"] label {
@@ -117,16 +117,18 @@ st.markdown("""
         border-color: #FFD700;
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
     }
-    /* 选中状态 */
+    /* 选中状态：金色大发光 */
     div.stRadio > div[role="radiogroup"] label[data-checked="true"] {
         background-color: rgba(255, 215, 0, 0.15) !important;
-        border: 1px solid #FFD700 !important;
+        border: 2px solid #FFD700 !important;
         box-shadow: 0 0 25px rgba(255, 215, 0, 0.6) !important;
+        transform: scale(1.05); /* 选中时微微放大，有呼吸感 */
     }
     div.stRadio > div[role="radiogroup"] label[data-checked="true"] p {
         color: #FFD700 !important;
         font-weight: bold;
         font-size: 1.2rem !important;
+        text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     }
     div.stRadio > div[role="radiogroup"] label p {
         color: #E5E7EB;
@@ -196,7 +198,6 @@ except Exception:
     pass
 
 # ================= 自定义导航菜单 =================
-# 用水平单选框来模拟卡片切换
 menu = st.radio(
     "导航",
     ["🔮 预测", "📊 对账", "📥 录入新开奖"],
