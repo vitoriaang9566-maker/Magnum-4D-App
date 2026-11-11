@@ -91,46 +91,52 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     }
 
-    /* ====== 自定义导航按钮（金框大卡片） ====== */
-    div.stRadio > div[role="radiogroup"] {
+    /* ====== 终极导航卡片（彻底去掉小白点） ====== */
+    div[data-testid="stRadio"] > div[role="radiogroup"] {
         display: flex;
         justify-content: center;
         gap: 20px;
         padding: 20px 0;
     }
-    /* 暴力隐藏所有默认的单选框小圆点 */
-    div.stRadio > div[role="radiogroup"] label > div:first-child {
+    
+    /* 彻底隐藏原生单选框的圆圈 */
+    div[data-testid="stRadio"] > div[role="radiogroup"] label > div:first-child {
         display: none !important;
     }
-    /* 自定义按钮卡片样式 */
-    div.stRadio > div[role="radiogroup"] label {
+    
+    /* 自定义卡片样式 */
+    div[data-testid="stRadio"] > div[role="radiogroup"] label {
         background-color: rgba(17, 24, 39, 0.8);
         border: 1px solid rgba(255, 215, 0, 0.4);
         border-radius: 12px;
-        padding: 15px 30px;
+        padding: 15px 40px;
         cursor: pointer;
         transition: all 0.3s ease;
         text-align: center;
         box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
-    div.stRadio > div[role="radiogroup"] label:hover {
+    
+    div[data-testid="stRadio"] > div[role="radiogroup"] label:hover {
         border-color: #FFD700;
         box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
     }
+    
     /* 选中状态：金色大发光 */
-    div.stRadio > div[role="radiogroup"] label[data-checked="true"] {
+    div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] {
         background-color: rgba(255, 215, 0, 0.15) !important;
         border: 2px solid #FFD700 !important;
         box-shadow: 0 0 25px rgba(255, 215, 0, 0.6) !important;
-        transform: scale(1.05); /* 选中时微微放大，有呼吸感 */
+        transform: scale(1.05); 
     }
-    div.stRadio > div[role="radiogroup"] label[data-checked="true"] p {
+    
+    div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] p {
         color: #FFD700 !important;
         font-weight: bold;
         font-size: 1.2rem !important;
         text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     }
-    div.stRadio > div[role="radiogroup"] label p {
+    
+    div[data-testid="stRadio"] > div[role="radiogroup"] label p {
         color: #E5E7EB;
         font-size: 1.1rem;
         margin: 0;
@@ -146,6 +152,15 @@ st.markdown("""
     div[data-testid="stNotification"] p {
         color: #FFD700 !important;
         font-weight: bold;
+    }
+    
+    /* 隐藏输入框的白色背景，融入黑金风 */
+    div[data-baseweb="input"] {
+        background-color: rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(255, 215, 0, 0.3) !important;
+    }
+    div[data-baseweb="input"] input {
+        color: #FFD700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -200,7 +215,7 @@ except Exception:
 # ================= 自定义导航菜单 =================
 menu = st.radio(
     "导航",
-    ["🔮 预测", "📊 对账", "📥 录入新开奖"],
+    ["预测", "对账", "录入新开奖"],
     horizontal=True,
     label_visibility="collapsed"
 )
@@ -208,7 +223,7 @@ menu = st.radio(
 st.divider()
 
 # ================= 内容区域 =================
-if menu == "🔮 预测":
+if menu == "预测":
     st.markdown("<h2>生成下一期预测矩阵</h2>", unsafe_allow_html=True)
     st.write("基于历史数据，同时生成：频率模型、马尔可夫模型、随机对照组。")
     
@@ -260,7 +275,7 @@ if menu == "🔮 预测":
             st.markdown(f'<div class="result-card result-markov"><b style="color:#FFD700;">👑 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="result-card result-random"><b style="color:#FF4500;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
-elif menu == "📊 对账":
+elif menu == "对账":
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
     
     with st.form("input_form"):
@@ -322,7 +337,7 @@ elif menu == "📊 对账":
     except Exception as e:
         st.error(f"❌ 历史记录读取失败: {e}")
 
-elif menu == "📥 录入新开奖":
+elif menu == "录入新开奖":
     st.markdown("<h2>手动录入新开奖结果</h2>", unsafe_allow_html=True)
     st.write("将最新的开奖结果永久写入云端。")
     
