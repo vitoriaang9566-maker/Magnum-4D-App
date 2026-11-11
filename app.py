@@ -46,7 +46,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>👑 4D 预测助手 (四模型对战版) 👑</h1>", unsafe_allow_html=True)
+st.markdown("<h1>👑 4D 预测助手 (黑金 VIP 版) 👑</h1>", unsafe_allow_html=True)
 
 @st.cache_resource
 def init_connection():
@@ -96,7 +96,7 @@ except Exception:
 # ================= 自定义导航菜单 =================
 menu = st.radio(
     "导航",
-    ["预测", "对账与图表", "全自动抓取"],
+    ["预测", "对账与图表", "最新开奖与抓取"],
     horizontal=True,
     label_visibility="collapsed"
 )
@@ -111,24 +111,20 @@ if menu == "预测":
     if st.button("🚀 生成并冻结四组预测", type="primary", use_container_width=True):
         with st.spinner("AI 正在运算..."):
             prizes = load_history_data()
-            if len(prizes) < 50: # 改为至少50期才能计算热号
+            if len(prizes) < 50:
                 st.error("历史数据太少，无法预测。")
                 st.stop()
                 
-            # 1. 长期频率模型
             freq_all = Counter(prizes)
             top10_freq = [num for num, count in freq_all.most_common(10)]
             
-            # 2. 近 50 期热号模型（新增）
             recent_50 = prizes[-50:]
             freq_hot = Counter(recent_50)
             top10_hot = [num for num, count in freq_hot.most_common(10)]
             
-            # 3. 随机对照组
             all_10000 = [f"{i:04d}" for i in range(10000)]
             top10_random = random.sample(all_10000, 10)
             
-            # 4. 马尔可夫模型
             transition = defaultdict(lambda: defaultdict(int))
             for i in range(len(prizes) - 1):
                 current_last = prizes[i][-1]
@@ -211,7 +207,6 @@ elif menu == "对账与图表":
 
     st.divider()
     
-    # ================= 画图 (累计柱状图) =================
     st.markdown("<h2>📊 模型累计命中对比</h2>", unsafe_allow_html=True)
     
     try:
@@ -282,9 +277,35 @@ elif menu == "对账与图表":
     except Exception as e:
         st.error(f"❌ 历史记录读取失败: {e}")
 
-elif menu == "全自动抓取":
-    st.markdown("<h2>自动抓取最新开奖结果</h2>", unsafe_allow_html=True)
-    st.write("点击下方按钮，系统将自动从 4dlivetoday 抓取最新一期 Magnum 头奖，并存入数据库。")
+elif menu == "最新开奖与抓取":
+    st.markdown("<h2>🏆 最新开奖结果 & 自动抓取</h2>", unsafe_allow_html=True)
+    
+    # ==== 这里就是你想要的官方开奖表展示 ====
+    try:
+        # 从数据库找最新的一条真实开奖记录（包括自动抓取和手动对账的）
+        res = supabase.table("predictions").select("*").neq("actual_prize", "").order("id", desc=True).limit(1).execute()
+        latest_draw = res.data[0] if res.data else None
+        
+        if latest_draw:
+            # 为了显示更完整的数据，我们需要调一次API获取这期的所有奖号
+            # 但为了速度，这里我们只展示数据库里的头奖（因为我们的表只存了头奖）
+            st.markdown(f"""
+            <div style="background-color: #1E232F; border: 2px solid #FFD700; border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 20px;">
+                <h3 style="color: #A0A5B1 !important; margin-bottom: 10px;">📅 最新开奖期号/日期</h3>
+                <h2 style="color: #FFD700; font-size: 2rem; margin: 0;">{latest_draw['prediction_time'].replace('Auto_Fetch_', '')}</h2>
+                <hr style="border-color: rgba(255,215,0,0.3); margin: 15px 0;">
+                <h3 style="color: #A0A5B1 !important;">🎯 头奖 (First Prize)</h3>
+                <h1 style="color: #FFD700; font-size: 3rem; margin: 10px 0; text-shadow: 0 0 20px rgba(255,215,0,0.5);">{latest_draw['actual_prize']}</h1>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.info("数据库里暂时还没有开奖数据，请点击下方抓取。")
+    except Exception as e:
+        st.error(f"读取最新开奖失败: {e}")
+
+    st.divider()
+    
+    st.write("点击下方按钮，系统将自动从 4dlivetoday 抓取最新一期 Magnum 全部开奖结果（头奖、二奖、三奖等）。")
     
     if st.button("🤖 立即联网抓取最新结果", type="primary", use_container_width=True):
         with st.spinner("正在连接 4dlivetoday 接口..."):
@@ -297,9 +318,26 @@ elif menu == "全自动抓取":
                 result = data["data"]["results"][0]
                 draw_date = result["date"]
                 first_prize = result["first"]
+                second_prize = result["second"]
+                third_prize = result["third"]
+                specials = result.get("special", [])
+                consolations = result.get("consolation", [])
                 
-                st.success(f"✅ 抓取成功！日期: {draw_date}, 头奖: {first_prize}")
+                # 显示抓取到的全量数据
+                st.success(f"✅ 抓取成功！日期: {draw_date}")
                 
+                st.markdown(f"""
+                <div style="background-color: #1E232F; border: 1px solid #FFD700; border-radius: 10px; padding: 20px; margin-top: 10px;">
+                    <h3 style="color: #FFD700; text-align: center;">🎉 {draw_date} 开奖详情</h3>
+                    <p style="color: #00BFFF; font-size: 1.2rem;"><b>头奖:</b> {first_prize}</p>
+                    <p style="color: #00BFFF; font-size: 1.2rem;"><b>二奖:</b> {second_prize}</p>
+                    <p style="color: #00BFFF; font-size: 1.2rem;"><b>三奖:</b> {third_prize}</p>
+                    <p style="color: #FFD700;"><b>特别奖:</b> {', '.join(specials)}</p>
+                    <p style="color: #A0A5B1;"><b>安慰奖:</b> {', '.join(consolations)}</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # 检查是否已存在
                 check_res = supabase.table("predictions").select("id").eq("prediction_time", f"Auto_Fetch_{draw_date}").execute()
                 
                 if len(check_res.data) > 0:
@@ -312,7 +350,7 @@ elif menu == "全自动抓取":
                         "actual_prize": first_prize,
                         "is_hit": False
                     }).execute()
-                    st.success(f"✅ 已将 {draw_date} 的头奖 {first_prize} 永久保存至云端！")
+                    st.success(f"✅ 已将 {draw_date} 的头奖 {first_prize} 永久保存至数据库！")
                     
             except Exception as e:
                 st.error(f"❌ 抓取或保存失败: {e}")
