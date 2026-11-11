@@ -1,8 +1,8 @@
-﻿import streamlit as st
+import streamlit as st
 import csv
 import datetime
-from pathlib import Path
 from collections import Counter
+from supabase import create_client, Client
 
 st.set_page_config(page_title="4D 助手", page_icon="🎰", layout="wide")
 
@@ -20,9 +20,13 @@ st.markdown("""
 
 st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手</h1>", unsafe_allow_html=True)
 
-clean_file = Path("magnum_draws_cleaned.csv")
-forward_dir = Path(".")
-ledger_file = Path("forward_test_ledger.csv")
+@st.cache_resource
+def init_connection():
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
+
+supabase = init_connection()
 
 tab1, tab2 = st.tabs(["🔮 预测", "📊 对账"])
 
@@ -33,27 +37,28 @@ with tab1:
     if st.button("🚀 立即生成并冻结", type="primary", use_container_width=True):
         with st.spinner("计算中..."):
             prizes = []
-            if clean_file.exists():
-                with clean_file.open("r", encoding="utf-8-sig", newline="") as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        prizes.append(row['prize_1'])
+            with open("magnum_draws_cleaned.csv", "r", encoding="utf-8-sig") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    prizes.append(row['prize_1'])
             
             freq = Counter(prizes)
             top10 = [num for num, count in freq.most_common(10)]
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            forward_dir.mkdir(exist_ok=True)
-            if not ledger_file.exists():
-                with ledger_file.open("w", encoding="utf-8-sig", newline="") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(["预测日期", "开奖日期", "预测模型", "推荐Top10", "实际头奖", "是否命中Top10", "备注"])
-            
-            with ledger_file.open("a", encoding="utf-8-sig", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow([now_str, "待开奖", "Frequency_Top10", ", ".join(top10), "", "", "等待开奖"])
-            
-            st.success(f"✅ 记录已生成 ({now_str})")
+            try:
+                data = {
+                    "prediction_time": now_str,
+                    "model": "Frequency_Top10",
+                    "top10": ", ".join(top10),
+                    "actual_prize": "",
+                    "is_hit": False
+                }
+                supabase.table("predictions").insert(data).execute()
+                st.success(f"✅ 记录已生成并永久保存至云端！({now_str})")
+            except Exception as e:
+                st.error(f"❌ 数据库写入失败: {e}")
+                
             st.info(f"**推荐号码：**\n\n{', '.join(top10)}")
 
 with tab2:
@@ -67,63 +72,54 @@ with tab2:
             if len(actual_prize) != 4 or not actual_prize.isdigit():
                 st.error("格式错误，请输入 4 位纯数字。")
             else:
-                if not ledger_file.exists():
-                    st.error("找不到台账文件。")
-                else:
-                    rows = []
-                    with ledger_file.open("r", encoding="utf-8-sig", newline="") as f:
-                        reader = csv.DictReader(f)
-                        rows = list(reader)
-                    
-                    pending = [r for r in rows if r['实际头奖'] == ""]
+                try:
+                    response = supabase.table("predictions").select("*").eq("actual_prize", "").execute()
+                    pending = response.data
                     
                     if not pending:
                         st.warning("没有待对账的预测。")
                     else:
                         hits = 0
                         for r in pending:
-                            r['开奖日期'] = datetime.date.today().strftime("%Y-%m-%d")
-                            r['实际头奖'] = actual_prize
-                            if actual_prize in r['推荐Top10'].split(', '):
-                                r['是否命中Top10'] = "是"
-                                r['备注'] = "🎯 命中！"
+                            is_hit = actual_prize in r['top10'].split(', ')
+                            if is_hit:
                                 hits += 1
-                            else:
-                                r['是否命中Top10'] = "否"
-                                r['备注'] = "未命中"
+                            
+                            supabase.table("predictions").update({
+                                "actual_prize": actual_prize,
+                                "is_hit": is_hit
+                            }).eq("id", r['id']).execute()
                         
-                        with ledger_file.open("w", encoding="utf-8-sig", newline="") as f:
-                            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
-                            writer.writeheader()
-                            writer.writerows(rows)
-                        
-                        total_predictions = len(rows)
-                        total_hits = sum(1 for r in rows if r['是否命中Top10'] == "是")
+                        total_resp = supabase.table("predictions").select("*").execute()
+                        all_rows = total_resp.data
+                        total_predictions = len(all_rows)
+                        total_hits = sum(1 for r in all_rows if r['is_hit'])
                         hit_rate = (total_hits / total_predictions) * 100 if total_predictions else 0
                         
                         st.success(f"✅ 对账完成: {actual_prize}")
                         st.metric(label="累计命中率", value=f"{hit_rate:.2f}%")
                         st.write(f"总期数: {total_predictions} | 命中: {total_hits}")
+                except Exception as e:
+                    st.error(f"❌ 数据库读取/更新失败: {e}")
 
     st.divider()
     st.markdown("<h2>📜 历史记录 (最近3期)</h2>", unsafe_allow_html=True)
-    if ledger_file.exists():
-        with ledger_file.open("r", encoding="utf-8-sig", newline="") as f:
-            reader = csv.DictReader(f)
-            data = list(reader)
-            if len(data) > 0:
-                # 倒序取最近 3 条
-                recent = data[-3:][::-1]
-                for r in recent:
-                    status_color = "green" if r['是否命中Top10'] == "是" else "gray"
-                    st.markdown(f"""
-                    <div style='border: 1px solid #444; padding: 10px; border-radius: 8px; margin-bottom: 10px;'>
-                        <p style='margin: 0; font-size: 0.8rem; color: #aaa;'>预测时间: {r['预测日期']}</p>
-                        <p style='margin: 5px 0; font-size: 1rem;'><b>预测号:</b> {r['推荐Top10']}</p>
-                        <p style='margin: 0; font-size: 0.9rem; color: {status_color};'><b>开奖号:</b> {r['实际头奖']} | <b>{r['备注']}</b></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info("暂无记录。")
-    else:
-        st.info("尚未生成预测。")
+    
+    try:
+        res = supabase.table("predictions").select("*").order("id", desc=True).limit(3).execute()
+        recent = res.data
+        
+        if recent:
+            for r in recent:
+                status_color = "green" if r['is_hit'] else "gray"
+                st.markdown(f"""
+                <div style='border: 1px solid #444; padding: 10px; border-radius: 8px; margin-bottom: 10px;'>
+                    <p style='margin: 0; font-size: 0.8rem; color: #aaa;'>预测时间: {r['prediction_time']}</p>
+                    <p style='margin: 5px 0; font-size: 1rem;'><b>预测号:</b> {r['top10']}</p>
+                    <p style='margin: 0; font-size: 0.9rem; color: {status_color};'><b>开奖号:</b> {r['actual_prize']} | <b>命中: {r['is_hit']}</b></p>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("暂无记录。")
+    except Exception as e:
+        st.error(f"❌ 历史记录读取失败: {e}")
