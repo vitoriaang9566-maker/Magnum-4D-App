@@ -20,24 +20,20 @@ st.markdown("""
     h1 { text-align: center; color: #FFD700; font-family: 'Georgia', serif; font-weight: bold; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); padding-bottom: 20px; }
     h2, h3 { color: #FFD700 !important; font-family: 'Georgia', serif; }
     
-    /* 顶部数据卡片 */
     .metric-card { background-color: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 215, 0, 0.5); border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); margin-bottom: 20px; transition: all 0.3s ease; }
     .metric-card:hover { box-shadow: 0 0 25px rgba(255, 215, 0, 0.3); }
     .metric-card h3 { color: #A0A5B1 !important; font-size: 14px !important; margin-bottom: 5px; }
     .metric-card p { color: #FFD700; font-size: 28px !important; font-weight: bold; margin: 0; }
     
-    /* 推荐结果卡片 */
     .result-card { background-color: rgba(17, 24, 39, 0.9); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
     .result-freq { border: 1px solid rgba(0, 191, 255, 0.6); border-left: 5px solid #00BFFF; }
     .result-markov { border: 1px solid rgba(255, 215, 0, 0.6); border-left: 5px solid #FFD700; }
     .result-hot { border: 1px solid rgba(255, 69, 0, 0.6); border-left: 5px solid #FF4500; }
     .result-random { border: 1px solid rgba(160, 165, 177, 0.6); border-left: 5px solid #A0A5B1; }
     
-    /* 按钮 */
     .stButton>button { width: 100%; background: linear-gradient(90deg, #8B0000 0%, #FF4500 100%); color: #FFD700; border: 1px solid #FFD700; border-radius: 10px; padding: 15px; font-size: 18px !important; font-weight: bold; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
     .stButton>button:hover { color: white; box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
     
-    /* 导航菜单 */
     div[data-testid="stRadio"] > div[role="radiogroup"] { display: flex; justify-content: center; gap: 20px; padding: 20px 0; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label > div:first-child { display: none !important; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label { background-color: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 215, 0, 0.4); border-radius: 12px; padding: 15px 40px; cursor: pointer; transition: all 0.3s ease; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
@@ -46,11 +42,9 @@ st.markdown("""
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] p { color: #FFD700 !important; font-weight: bold; font-size: 1.2rem !important; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label p { color: #E5E7EB; font-size: 1.1rem; margin: 0; }
     
-    /* 黑金提示框 */
     div[data-testid="stNotification"] { background-color: rgba(17, 24, 39, 0.95) !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 10px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
     div[data-testid="stNotification"] p { color: #FFD700 !important; font-weight: bold; }
     
-    /* 黑化输入框 */
     div[data-testid="stTextInput"] input { background-color: #1E232F !important; color: #FFD700 !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -289,7 +283,6 @@ elif menu == "对账与图表":
 elif menu == "最新开奖与抓取":
     st.markdown("<h2>🏆 最新开奖结果 & 自动抓取</h2>", unsafe_allow_html=True)
     
-    # ==== 官方开奖表黑金展示 ====
     try:
         res = supabase.table("predictions").select("*").neq("actual_prize", "").order("id", desc=True).limit(1).execute()
         latest_draw = res.data[0] if res.data else None
@@ -331,7 +324,6 @@ elif menu == "最新开奖与抓取":
                 
                 st.success(f"✅ 抓取成功！日期: {draw_date}")
                 
-                # ==== 这里就是你想要的官网同款黑金开奖卡片 ====
                 st.markdown(f"""
                 <div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-top: 15px; box-shadow: 0 0 20px rgba(255,215,0,0.1);">
                     <h3 style="color: #FFD700; text-align: center; margin-bottom: 25px; font-family: 'Georgia', serif; font-size: 1.8rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">🎉 {draw_date} 开奖详情</h3>
@@ -368,7 +360,6 @@ elif menu == "最新开奖与抓取":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # 检查是否已存在
                 check_res = supabase.table("predictions").select("id").eq("prediction_time", f"Auto_Fetch_{draw_date}").execute()
                 
                 if len(check_res.data) > 0:
