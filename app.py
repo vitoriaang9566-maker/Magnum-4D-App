@@ -26,11 +26,11 @@ st.markdown("""
     .result-card { background-color: rgba(17, 24, 39, 0.9); border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
     .result-freq { border: 1px solid rgba(0, 191, 255, 0.6); border-left: 5px solid #00BFFF; }
     .result-markov { border: 1px solid rgba(255, 215, 0, 0.6); border-left: 5px solid #FFD700; }
-    .result-random { border: 1px solid rgba(255, 69, 0, 0.6); border-left: 5px solid #FF4500; }
+    .result-hot { border: 1px solid rgba(255, 69, 0, 0.6); border-left: 5px solid #FF4500; }
+    .result-random { border: 1px solid rgba(160, 165, 177, 0.6); border-left: 5px solid #A0A5B1; }
     .stButton>button { width: 100%; background: linear-gradient(90deg, #8B0000 0%, #FF4500 100%); color: #FFD700; border: 1px solid #FFD700; border-radius: 10px; padding: 15px; font-size: 18px !important; font-weight: bold; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
     .stButton>button:hover { color: white; box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
     
-    /* 导航卡片 */
     div[data-testid="stRadio"] > div[role="radiogroup"] { display: flex; justify-content: center; gap: 20px; padding: 20px 0; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label > div:first-child { display: none !important; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label { background-color: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 215, 0, 0.4); border-radius: 12px; padding: 15px 40px; cursor: pointer; transition: all 0.3s ease; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
@@ -39,21 +39,14 @@ st.markdown("""
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] p { color: #FFD700 !important; font-weight: bold; font-size: 1.2rem !important; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label p { color: #E5E7EB; font-size: 1.1rem; margin: 0; }
     
-    /* 黑金提示框 */
     div[data-testid="stNotification"] { background-color: rgba(17, 24, 39, 0.95) !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 10px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
     div[data-testid="stNotification"] p { color: #FFD700 !important; font-weight: bold; }
     
-    /* 终极黑化输入框 */
-    div[data-testid="stTextInput"] input {
-        background-color: #1E232F !important;
-        color: #FFD700 !important;
-        border: 1px solid rgba(255, 215, 0, 0.5) !important;
-        border-radius: 8px !important;
-    }
+    div[data-testid="stTextInput"] input { background-color: #1E232F !important; color: #FFD700 !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>👑 4D 预测助手 (黑金 VIP 版) 👑</h1>", unsafe_allow_html=True)
+st.markdown("<h1>👑 4D 预测助手 (四模型对战版) 👑</h1>", unsafe_allow_html=True)
 
 @st.cache_resource
 def init_connection():
@@ -113,21 +106,29 @@ st.divider()
 # ================= 内容区域 =================
 if menu == "预测":
     st.markdown("<h2>生成下一期预测矩阵</h2>", unsafe_allow_html=True)
-    st.write("基于历史数据，同时生成：频率模型、马尔可夫模型、随机对照组。")
+    st.write("基于历史数据，同时生成：长期频率、近期热号、马尔可夫、随机对照组。")
     
-    if st.button("🚀 生成并冻结三组预测", type="primary", use_container_width=True):
+    if st.button("🚀 生成并冻结四组预测", type="primary", use_container_width=True):
         with st.spinner("AI 正在运算..."):
             prizes = load_history_data()
-            if len(prizes) < 10:
+            if len(prizes) < 50: # 改为至少50期才能计算热号
                 st.error("历史数据太少，无法预测。")
                 st.stop()
                 
-            freq = Counter(prizes)
-            top10_freq = [num for num, count in freq.most_common(10)]
+            # 1. 长期频率模型
+            freq_all = Counter(prizes)
+            top10_freq = [num for num, count in freq_all.most_common(10)]
             
+            # 2. 近 50 期热号模型（新增）
+            recent_50 = prizes[-50:]
+            freq_hot = Counter(recent_50)
+            top10_hot = [num for num, count in freq_hot.most_common(10)]
+            
+            # 3. 随机对照组
             all_10000 = [f"{i:04d}" for i in range(10000)]
             top10_random = random.sample(all_10000, 10)
             
+            # 4. 马尔可夫模型
             transition = defaultdict(lambda: defaultdict(int))
             for i in range(len(prizes) - 1):
                 current_last = prizes[i][-1]
@@ -137,40 +138,37 @@ if menu == "预测":
             last_prize = prizes[-1]
             predicted_last = max(transition[last_prize[-1]].items(), key=lambda x: x[1])[0] if transition[last_prize[-1]] else "0"
             
-            # ============ 修复去重的核心逻辑 ============
             top10_markov = []
-            # 第一轮：优先找尾数匹配的高频号
-            for num, count in freq.most_common(100):
+            for num, count in freq_all.most_common(100):
                 if num[-1] == predicted_last and num not in top10_markov:
                     top10_markov.append(num)
                 if len(top10_markov) >= 10:
                     break
-            
-            # 第二轮：如果没凑齐10个，用频率最高的补齐（彻底去重）
             if len(top10_markov) < 10:
                 for num in top10_freq:
                     if num not in top10_markov:
                         top10_markov.append(num)
                     if len(top10_markov) >= 10:
                         break
-            # ==========================================
             
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
             try:
                 supabase.table("predictions").insert([
                     {"prediction_time": now_str, "model": "Frequency", "top10": ", ".join(top10_freq), "actual_prize": "", "is_hit": False},
+                    {"prediction_time": now_str, "model": "Hot_50", "top10": ", ".join(top10_hot), "actual_prize": "", "is_hit": False},
                     {"prediction_time": now_str, "model": "Markov", "top10": ", ".join(top10_markov), "actual_prize": "", "is_hit": False},
                     {"prediction_time": now_str, "model": "Random", "top10": ", ".join(top10_random), "actual_prize": "", "is_hit": False}
                 ]).execute()
-                st.success(f"✅ 三组预测已生成并永久保存至云端！({now_str})")
+                st.success(f"✅ 四组预测已生成并永久保存至云端！({now_str})")
             except Exception as e:
                 st.error(f"❌ 数据库写入失败: {e}")
                 
             st.markdown("### 🏆 推荐结果")
-            st.markdown(f'<div class="result-card result-freq"><b style="color:#00BFFF;">💎 频率模型:</b> {", ".join(top10_freq)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-freq"><b style="color:#00BFFF;">💎 长期频率:</b> {", ".join(top10_freq)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-hot"><b style="color:#FF4500;">🔥 近 50 期热号:</b> {", ".join(top10_hot)}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="result-card result-markov"><b style="color:#FFD700;">👑 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-card result-random"><b style="color:#FF4500;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-random"><b style="color:#A0A5B1;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
 elif menu == "对账与图表":
     st.markdown("<h2>录入真实开奖与命中率走势</h2>", unsafe_allow_html=True)
@@ -190,7 +188,7 @@ elif menu == "对账与图表":
                     if not pending:
                         st.warning("没有待对账的预测。")
                     else:
-                        hits_by_model = {"Frequency": 0, "Markov": 0, "Random": 0}
+                        hits_by_model = {"Frequency": 0, "Hot_50": 0, "Markov": 0, "Random": 0}
                         for r in pending:
                             is_hit = actual_prize in r['top10'].split(', ')
                             if is_hit:
@@ -203,7 +201,11 @@ elif menu == "对账与图表":
                             }).eq("id", r['id']).execute()
                         
                         st.success(f"✅ 对账完成: {actual_prize}")
-                        st.write("**本轮命中情况：** 频率: " + ("🎯" if hits_by_model['Frequency'] else "未中") + " | 马尔可夫: " + ("🎯" if hits_by_model['Markov'] else "未中") + " | 随机: " + ("🎯" if hits_by_model['Random'] else "未中"))
+                        st.write("**本轮命中情况：**")
+                        st.write(f"🔵 长期频率: {'🎯 命中' if hits_by_model['Frequency'] else '未中'}")
+                        st.write(f"🔥 近50期热号: {'🎯 命中' if hits_by_model['Hot_50'] else '未中'}")
+                        st.write(f"👑 马尔可夫: {'🎯 命中' if hits_by_model['Markov'] else '未中'}")
+                        st.write(f"🎲 随机模型: {'🎯 命中' if hits_by_model['Random'] else '未中'}")
                 except Exception as e:
                     st.error(f"❌ 对账失败: {e}")
 
@@ -217,20 +219,20 @@ elif menu == "对账与图表":
         all_data = res.data
         
         df = pd.DataFrame(all_data)
-        df = df[df['model'].isin(['Frequency', 'Markov', 'Random'])]
+        models_list = ['Frequency', 'Hot_50', 'Markov', 'Random']
+        df = df[df['model'].isin(models_list)]
         
         if not df.empty:
             stats = df.groupby('model')['is_hit'].sum().reset_index()
             
-            models = ['Frequency', 'Markov', 'Random']
-            for m in models:
+            for m in models_list:
                 if m not in stats['model'].values:
                     stats = pd.concat([stats, pd.DataFrame({'model': [m], 'is_hit': [0]})], ignore_index=True)
             
-            colors = {'Frequency': '#00BFFF', 'Markov': '#FFD700', 'Random': '#FF4500'}
+            colors = {'Frequency': '#00BFFF', 'Hot_50': '#FF4500', 'Markov': '#FFD700', 'Random': '#A0A5B1'}
             
             fig = go.Figure()
-            for model in models:
+            for model in models_list:
                 model_stat = stats[stats['model'] == model]
                 if not model_stat.empty:
                     val = model_stat['is_hit'].values[0]
@@ -265,8 +267,11 @@ elif menu == "对账与图表":
         if recent:
             for r in recent:
                 status_color = "#FFD700" if r['is_hit'] else "#6B7280"
-                model_color = "#FF4500" if r['model'] == "Random" else "#00BFFF"
-                if r['model'] == "Auto_Fetch": model_color = "#00FF7F"
+                if r['model'] == "Random": model_color = "#A0A5B1"
+                elif r['model'] == "Hot_50": model_color = "#FF4500"
+                elif r['model'] == "Auto_Fetch": model_color = "#00FF7F"
+                else: model_color = "#00BFFF"
+                
                 st.markdown(f"""
                 <div style='border: 1px solid rgba(255,215,0,0.2); background-color: rgba(17, 24, 39, 0.6); padding: 15px; border-radius: 10px; margin-bottom: 10px;'>
                     <p style='margin: 0; font-size: 0.8rem; color: #A0A5B1;'>预测时间: {r['prediction_time']} | 模型: <span style='color:{model_color};'>{r['model']}</span></p>
