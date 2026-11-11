@@ -288,15 +288,8 @@ elif menu == "最新开奖与抓取":
         latest_draw = res.data[0] if res.data else None
         
         if latest_draw:
-            st.markdown(f"""
-            <div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(255,215,0,0.1);">
-                <h3 style="color: #FFD700; text-align: center; margin-bottom: 15px; font-family: 'Georgia', serif; font-size: 1.5rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">📅 最新开奖期号/日期</h3>
-                <h2 style="color: #FFD700; text-align: center; font-size: 2rem; margin: 0;">{latest_draw['prediction_time'].replace('Auto_Fetch_', '')}</h2>
-                <hr style="border-color: rgba(255,215,0,0.3); margin: 15px 0;">
-                <h3 style="color: #A0A5B1; text-align: center; font-size: 1rem;">🎯 头奖 (First Prize)</h3>
-                <h1 style="color: #FFD700; text-align: center; font-size: 3.5rem; margin: 10px 0; text-shadow: 0 0 20px rgba(255,215,0,0.5);">{latest_draw['actual_prize']}</h1>
-            </div>
-            """, unsafe_allow_html=True)
+            html_latest = f'<div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(255,215,0,0.1);"><h3 style="color: #FFD700; text-align: center; margin-bottom: 15px; font-family: Georgia, serif; font-size: 1.5rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">📅 最新开奖期号/日期</h3><h2 style="color: #FFD700; text-align: center; font-size: 2rem; margin: 0;">{latest_draw["prediction_time"].replace("Auto_Fetch_", "")}</h2><hr style="border-color: rgba(255,215,0,0.3); margin: 15px 0;"><h3 style="color: #A0A5B1; text-align: center; font-size: 1rem;">🎯 头奖 (First Prize)</h3><h1 style="color: #FFD700; text-align: center; font-size: 3.5rem; margin: 10px 0; text-shadow: 0 0 20px rgba(255,215,0,0.5);">{latest_draw["actual_prize"]}</h1></div>'
+            st.markdown(html_latest, unsafe_allow_html=True)
         else:
             st.info("数据库里暂时还没有开奖数据，请点击下方抓取。")
     except Exception as e:
@@ -324,42 +317,24 @@ elif menu == "最新开奖与抓取":
                 
                 st.success(f"✅ 抓取成功！日期: {draw_date}")
                 
-                # 这里就是那个带 unsafe_allow_html=True 的完整黑金开奖卡片
-                st.markdown(f"""
-                <div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-top: 15px; box-shadow: 0 0 20px rgba(255,215,0,0.1);">
-                    <h3 style="color: #FFD700; text-align: center; margin-bottom: 25px; font-family: 'Georgia', serif; font-size: 1.8rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">🎉 {draw_date} 开奖详情</h3>
-                    
-                    <div style="display: flex; justify-content: space-around; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 20px; margin-bottom: 20px;">
-                        <div style="text-align: center;">
-                            <p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥇 首奖</p>
-                            <p style="color: #FFD700; font-size: 2rem; font-weight: bold; margin: 0; text-shadow: 0 0 10px rgba(255,215,0,0.4);">{first_prize}</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥈 二奖</p>
-                            <p style="color: #E5E7EB; font-size: 1.5rem; font-weight: bold; margin: 0;">{second_prize}</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥉 三奖</p>
-                            <p style="color: #E5E7EB; font-size: 1.5rem; font-weight: bold; margin: 0;">{third_prize}</p>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; gap: 20px;">
-                        <div style="flex: 1;">
-                            <p style="color: #FFD700; font-size: 0.9rem; text-align: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 5px;">特别奖</p>
-                            <div style="color: #FFD700; font-size: 1.1rem; line-height: 1.8; text-align: center;">
-                                {', '.join(specials)}
-                            </div>
-                        </div>
-                        <div style="flex: 1; border-left: 1px solid rgba(255,215,0,0.2); padding-left: 20px;">
-                            <p style="color: #A0A5B1; font-size: 0.9rem; text-align: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 5px;">安慰奖</p>
-                            <div style="color: #E5E7EB; font-size: 1.1rem; line-height: 1.8; text-align: center;">
-                                {', '.join(consolations)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                # 绝对防御：单行字符串拼接
+                html_card = '<div style="background-color: #1A1F2B; border: 2px solid #FFD700; border-radius: 15px; padding: 25px; margin-top: 15px; box-shadow: 0 0 20px rgba(255,215,0,0.1);">' \
+                            f'<h3 style="color: #FFD700; text-align: center; margin-bottom: 25px; font-family: Georgia, serif; font-size: 1.8rem; text-shadow: 0 0 10px rgba(255,215,0,0.3);">🎉 {draw_date} 开奖详情</h3>' \
+                            '<div style="display: flex; justify-content: space-around; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 20px; margin-bottom: 20px;">' \
+                            '<div style="text-align: center;"><p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥇 首奖</p>' \
+                            f'<p style="color: #FFD700; font-size: 2rem; font-weight: bold; margin: 0; text-shadow: 0 0 10px rgba(255,215,0,0.4);">{first_prize}</p></div>' \
+                            '<div style="text-align: center;"><p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥈 二奖</p>' \
+                            f'<p style="color: #E5E7EB; font-size: 1.5rem; font-weight: bold; margin: 0;">{second_prize}</p></div>' \
+                            '<div style="text-align: center;"><p style="color: #A0A5B1; font-size: 0.9rem; margin-bottom: 5px;">🥉 三奖</p>' \
+                            f'<p style="color: #E5E7EB; font-size: 1.5rem; font-weight: bold; margin: 0;">{third_prize}</p></div></div>' \
+                            '<div style="display: flex; justify-content: space-between; gap: 20px;">' \
+                            '<div style="flex: 1;"><p style="color: #FFD700; font-size: 0.9rem; text-align: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 5px;">特别奖</p>' \
+                            f'<div style="color: #FFD700; font-size: 1.1rem; line-height: 1.8; text-align: center;">{", ".join(specials)}</div></div>' \
+                            '<div style="flex: 1; border-left: 1px solid rgba(255,215,0,0.2); padding-left: 20px;"><p style="color: #A0A5B1; font-size: 0.9rem; text-align: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 5px;">安慰奖</p>' \
+                            f'<div style="color: #E5E7EB; font-size: 1.1rem; line-height: 1.8; text-align: center;">{", ".join(consolations)}</div></div>' \
+                            '</div></div>'
+                
+                st.markdown(html_card, unsafe_allow_html=True)
                 
                 check_res = supabase.table("predictions").select("id").eq("prediction_time", f"Auto_Fetch_{draw_date}").execute()
                 
