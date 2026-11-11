@@ -3,6 +3,8 @@ import csv
 import datetime
 import random
 import requests
+import pandas as pd
+import plotly.graph_objects as go
 from collections import Counter, defaultdict
 from supabase import create_client, Client
 
@@ -72,7 +74,7 @@ def load_history_data():
 try:
     res = supabase.table("predictions").select("*").execute()
     all_data = res.data
-    total_pred = len([d for d in all_data if d['model'] != "Manual_Entry" and d['model'] != "Auto_Fetch"])
+    total_pred = len([d for d in all_data if d['model'] not in ["Manual_Entry", "Auto_Fetch"]])
     total_hits = sum(1 for d in all_data if d['is_hit'])
     win_rate = (total_hits / total_pred * 100) if total_pred > 0 else 0.0
     
@@ -89,7 +91,7 @@ except Exception:
 # ================= 自定义导航菜单 =================
 menu = st.radio(
     "导航",
-    ["预测", "对账", "全自动抓取"],
+    ["预测", "对账与图表", "全自动抓取"],
     horizontal=True,
     label_visibility="collapsed"
 )
@@ -149,8 +151,8 @@ if menu == "预测":
             st.markdown(f'<div class="result-card result-markov"><b style="color:#FFD700;">👑 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="result-card result-random"><b style="color:#FF4500;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
-elif menu == "对账":
-    st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
+elif menu == "对账与图表":
+    st.markdown("<h2>录入真实开奖与命中率走势</h2>", unsafe_allow_html=True)
     
     with st.form("input_form"):
         actual_prize = st.text_input("输入 4 位头奖号码", max_chars=4)
@@ -161,6 +163,7 @@ elif menu == "对账":
                 st.error("格式错误，请输入 4 位纯数字。")
             else:
                 try:
+                    # 找所有待对账预测 (包括之前没开奖的)
                     response = supabase.table("predictions").select("*").eq("actual_prize", "").execute()
                     pending = response.data
                     
@@ -180,27 +183,69 @@ elif menu == "对账":
                             }).eq("id", r['id']).execute()
                         
                         st.success(f"✅ 对账完成: {actual_prize}")
-                        st.write("**本轮各模型命中情况：**")
-                        st.write(f"- 频率模型: {'🎯 命中' if hits_by_model['Frequency'] > 0 else '未中'}")
-                        st.write(f"- 马尔可夫模型: {'🎯 命中' if hits_by_model['Markov'] > 0 else '未中'}")
-                        st.write(f"- 随机模型: {'🎯 命中' if hits_by_model['Random'] > 0 else '未中'}")
-                        
+                        st.write("**本轮命中情况：** 频率: " + ("🎯" if hits_by_model['Frequency'] else "未中") + " | 马尔可夫: " + ("🎯" if hits_by_model['Markov'] else "未中") + " | 随机: " + ("🎯" if hits_by_model['Random'] else "未中"))
                 except Exception as e:
-                    st.error(f"❌ 数据库读取/更新失败: {e}")
+                    st.error(f"❌ 对账失败: {e}")
 
     st.divider()
-    st.markdown("<h2>📜 历史记录 (最近 3 次预测)</h2>", unsafe_allow_html=True)
+    
+    # ================= 这里开始画图 =================
+    st.markdown("<h2>📈 最近 30 期命中率走势</h2>", unsafe_allow_html=True)
     
     try:
-        res = supabase.table("predictions").select("*").order("id", desc=True).limit(9).execute()
-        recent = res.data
+        # 取最近 90 条记录（约 30 期 * 3 个模型）
+        res = supabase.table("predictions").select("*").neq("actual_prize", "").order("id", desc=False).execute()
+        all_data = res.data
         
+        # 用 Pandas 来整理数据
+        df = pd.DataFrame(all_data)
+        df = df[df['model'].isin(['Frequency', 'Markov', 'Random'])].tail(90)
+        
+        if not df.empty:
+            # 为了让 x 轴好看，我们只用时间
+            df['time'] = df['prediction_time'].apply(lambda x: x.split(' ')[1][:5])
+            
+            fig = go.Figure()
+            # 定义颜色
+            colors = {'Frequency': '#00BFFF', 'Markov': '#FFD700', 'Random': '#FF4500'}
+            
+            for model in ['Frequency', 'Markov', 'Random']:
+                model_df = df[df['model'] == model]
+                if not model_df.empty:
+                    fig.add_trace(go.Scatter(
+                        x=model_df['time'], 
+                        y=model_df['is_hit'].astype(int), 
+                        mode='lines+markers',
+                        name=model,
+                        line=dict(color=colors[model], width=3),
+                        marker=dict(size=8, line=dict(width=2, color='#111827'))
+                    ))
+            
+            fig.update_layout(
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color='#E5E7EB'),
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickvals=[0, 1], ticktext=['未中', '命中']),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                margin=dict(l=20, r=20, t=20, b=20)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("还没有对账数据，先去对账吧！")
+    except Exception as e:
+        st.error(f"读取图表数据失败: {e}")
+
+    st.divider()
+    st.markdown("<h2>📜 历史记录 (最近 10 条)</h2>", unsafe_allow_html=True)
+    try:
+        res = supabase.table("predictions").select("*").order("id", desc=True).limit(10).execute()
+        recent = res.data
         if recent:
             for r in recent:
                 status_color = "#FFD700" if r['is_hit'] else "#6B7280"
                 model_color = "#FF4500" if r['model'] == "Random" else "#00BFFF"
-                if r['model'] == "Auto_Fetch":
-                    model_color = "#00FF7F"
+                if r['model'] == "Auto_Fetch": model_color = "#00FF7F"
                 st.markdown(f"""
                 <div style='border: 1px solid rgba(255,215,0,0.2); background-color: rgba(17, 24, 39, 0.6); padding: 15px; border-radius: 10px; margin-bottom: 10px;'>
                     <p style='margin: 0; font-size: 0.8rem; color: #A0A5B1;'>预测时间: {r['prediction_time']} | 模型: <span style='color:{model_color};'>{r['model']}</span></p>
@@ -208,8 +253,6 @@ elif menu == "对账":
                     <p style='margin: 0; font-size: 0.9rem; color: {status_color};'><b>开奖号:</b> {r['actual_prize'] if r['actual_prize'] else '待开奖'} | <b>命中: {r['is_hit']}</b></p>
                 </div>
                 """, unsafe_allow_html=True)
-        else:
-            st.info("暂无记录。")
     except Exception as e:
         st.error(f"❌ 历史记录读取失败: {e}")
 
