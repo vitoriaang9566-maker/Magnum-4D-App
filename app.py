@@ -36,6 +36,8 @@ st.markdown("""
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] { background-color: rgba(255, 215, 0, 0.15) !important; border: 2px solid #FFD700 !important; box-shadow: 0 0 25px rgba(255, 215, 0, 0.6) !important; transform: scale(1.05); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] p { color: #FFD700 !important; font-weight: bold; font-size: 1.2rem !important; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label p { color: #E5E7EB; font-size: 1.1rem; margin: 0; }
+    
+    /* 修复提示框 */
     div[data-testid="stNotification"] { background-color: rgba(17, 24, 39, 0.95) !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 10px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
     div[data-testid="stNotification"] p { color: #FFD700 !important; font-weight: bold; }
 </style>
@@ -163,7 +165,6 @@ elif menu == "对账与图表":
                 st.error("格式错误，请输入 4 位纯数字。")
             else:
                 try:
-                    # 找所有待对账预测 (包括之前没开奖的)
                     response = supabase.table("predictions").select("*").eq("actual_prize", "").execute()
                     pending = response.data
                     
@@ -189,45 +190,41 @@ elif menu == "对账与图表":
 
     st.divider()
     
-    # ================= 这里开始画图 =================
-    st.markdown("<h2>📈 最近 30 期命中率走势</h2>", unsafe_allow_html=True)
+    # ================= 这里开始画图 (累计柱状图) =================
+    st.markdown("<h2>📊 模型累计命中对比</h2>", unsafe_allow_html=True)
     
     try:
-        # 取最近 90 条记录（约 30 期 * 3 个模型）
-        res = supabase.table("predictions").select("*").neq("actual_prize", "").order("id", desc=False).execute()
+        res = supabase.table("predictions").select("*").neq("actual_prize", "").execute()
         all_data = res.data
         
-        # 用 Pandas 来整理数据
         df = pd.DataFrame(all_data)
-        df = df[df['model'].isin(['Frequency', 'Markov', 'Random'])].tail(90)
+        df = df[df['model'].isin(['Frequency', 'Markov', 'Random'])]
         
         if not df.empty:
-            # 为了让 x 轴好看，我们只用时间
-            df['time'] = df['prediction_time'].apply(lambda x: x.split(' ')[1][:5])
+            # 计算每个模型的累计命中次数
+            stats = df.groupby('model')['is_hit'].sum().reset_index()
             
-            fig = go.Figure()
-            # 定义颜色
             colors = {'Frequency': '#00BFFF', 'Markov': '#FFD700', 'Random': '#FF4500'}
             
+            fig = go.Figure()
             for model in ['Frequency', 'Markov', 'Random']:
-                model_df = df[df['model'] == model]
-                if not model_df.empty:
-                    fig.add_trace(go.Scatter(
-                        x=model_df['time'], 
-                        y=model_df['is_hit'].astype(int), 
-                        mode='lines+markers',
+                model_stat = stats[stats['model'] == model]
+                if not model_stat.empty:
+                    fig.add_trace(go.Bar(
+                        x=[model],
+                        y=[model_stat['is_hit'].values[0]],
                         name=model,
-                        line=dict(color=colors[model], width=3),
-                        marker=dict(size=8, line=dict(width=2, color='#111827'))
+                        marker_color=colors[model],
+                        text=[model_stat['is_hit'].values[0]],
+                        textposition='auto',
                     ))
             
             fig.update_layout(
                 plot_bgcolor='rgba(0,0,0,0)',
                 paper_bgcolor='rgba(0,0,0,0)',
                 font=dict(color='#E5E7EB'),
-                xaxis=dict(showgrid=False),
-                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', tickvals=[0, 1], ticktext=['未中', '命中']),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                yaxis=dict(title='累计命中次数', showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
+                showlegend=False,
                 margin=dict(l=20, r=20, t=20, b=20)
             )
             st.plotly_chart(fig, use_container_width=True)
