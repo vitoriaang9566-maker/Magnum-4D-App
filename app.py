@@ -20,9 +20,9 @@ st.markdown("""
 
 st.markdown("<h1 style='text-align: center;'>🎰 4D 预测助手</h1>", unsafe_allow_html=True)
 
-clean_file = Path("02_CLEAN_DATA/magnum_draws_cleaned.csv")
-forward_dir = Path("07_FORWARD_TEST")
-ledger_file = forward_dir / "forward_test_ledger.csv"
+clean_file = Path("magnum_draws_cleaned.csv")
+forward_dir = Path(".")
+ledger_file = Path("forward_test_ledger.csv")
 
 tab1, tab2 = st.tabs(["🔮 预测", "📊 对账"])
 
