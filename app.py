@@ -29,6 +29,8 @@ st.markdown("""
     .result-random { border: 1px solid rgba(255, 69, 0, 0.6); border-left: 5px solid #FF4500; }
     .stButton>button { width: 100%; background: linear-gradient(90deg, #8B0000 0%, #FF4500 100%); color: #FFD700; border: 1px solid #FFD700; border-radius: 10px; padding: 15px; font-size: 18px !important; font-weight: bold; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
     .stButton>button:hover { color: white; box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+    
+    /* 导航卡片 */
     div[data-testid="stRadio"] > div[role="radiogroup"] { display: flex; justify-content: center; gap: 20px; padding: 20px 0; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label > div:first-child { display: none !important; }
     div[data-testid="stRadio"] > div[role="radiogroup"] label { background-color: rgba(17, 24, 39, 0.8); border: 1px solid rgba(255, 215, 0, 0.4); border-radius: 12px; padding: 15px 40px; cursor: pointer; transition: all 0.3s ease; text-align: center; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
@@ -36,8 +38,14 @@ st.markdown("""
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] { background-color: rgba(255, 215, 0, 0.15) !important; border: 2px solid #FFD700 !important; box-shadow: 0 0 25px rgba(255, 215, 0, 0.6) !important; transform: scale(1.05); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label[data-checked="true"] p { color: #FFD700 !important; font-weight: bold; font-size: 1.2rem !important; text-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
     div[data-testid="stRadio"] > div[role="radiogroup"] label p { color: #E5E7EB; font-size: 1.1rem; margin: 0; }
+    
+    /* 黑金提示框 */
     div[data-testid="stNotification"] { background-color: rgba(17, 24, 39, 0.95) !important; border: 1px solid rgba(255, 215, 0, 0.5) !important; border-radius: 10px; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15); }
     div[data-testid="stNotification"] p { color: #FFD700 !important; font-weight: bold; }
+    
+    /* 黑化输入框 */
+    div[data-baseweb="input"] { background-color: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255, 215, 0, 0.3) !important; }
+    div[data-baseweb="input"] input { color: #FFD700 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -125,14 +133,23 @@ if menu == "预测":
             last_prize = prizes[-1]
             predicted_last = max(transition[last_prize[-1]].items(), key=lambda x: x[1])[0] if transition[last_prize[-1]] else "0"
             
+            # ============ 修复去重的核心逻辑 ============
             top10_markov = []
-            for num, count in freq.most_common(50):
+            # 第一轮：优先找尾数匹配的高频号
+            for num, count in freq.most_common(100): # 扩大到100，防止不够10个
                 if num[-1] == predicted_last and num not in top10_markov:
                     top10_markov.append(num)
                 if len(top10_markov) >= 10:
                     break
+            
+            # 第二轮：如果没凑齐10个，用频率最高的补齐（彻底去重）
             if len(top10_markov) < 10:
-                top10_markov.extend(top10_freq[:10-len(top10_markov)])
+                for num in top10_freq:
+                    if num not in top10_markov:
+                        top10_markov.append(num)
+                    if len(top10_markov) >= 10:
+                        break
+            # ==========================================
             
             now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
@@ -188,7 +205,7 @@ elif menu == "对账与图表":
 
     st.divider()
     
-    # ================= 这里开始画图 (累计柱状图) =================
+    # ================= 画图 (累计柱状图) =================
     st.markdown("<h2>📊 模型累计命中对比</h2>", unsafe_allow_html=True)
     
     try:
@@ -201,7 +218,6 @@ elif menu == "对账与图表":
         if not df.empty:
             stats = df.groupby('model')['is_hit'].sum().reset_index()
             
-            # 确保三个模型都有数据，没有的默认为 0
             models = ['Frequency', 'Markov', 'Random']
             for m in models:
                 if m not in stats['model'].values:
