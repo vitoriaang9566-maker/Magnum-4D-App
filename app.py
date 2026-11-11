@@ -5,9 +5,9 @@ import random
 from collections import Counter, defaultdict
 from supabase import create_client, Client
 
-st.set_page_config(page_title="4D 助手", page_icon="🎰", layout="wide")
+st.set_page_config(page_title="4D 助手", page_icon="👑", layout="wide")
 
-# 注入高级 CSS 美化 (深色极简风)
+# ================= 黑金奢华风格 CSS =================
 st.markdown("""
 <style>
     /* 隐藏默认菜单 */
@@ -15,68 +15,85 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* 整体背景色和字体 */
+    /* 整体背景：深邃的黑蓝色 */
     .stApp {
-        background-color: #0E1117;
-        color: #FAFAFA;
+        background: linear-gradient(135deg, #05080E 0%, #111827 100%);
+        color: #E5E7EB;
     }
     
-    /* 顶部大标题 */
+    /* 顶部大标题：土豪金 */
     h1 {
         text-align: center;
         color: #FFD700;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Georgia', serif;
+        font-weight: bold;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
         padding-bottom: 20px;
     }
     
-    /* 数据概览卡片 */
+    h2, h3 {
+        color: #FFD700 !important;
+        font-family: 'Georgia', serif;
+    }
+    
+    /* 数据概览卡片：黑底金边 */
     .metric-card {
-        background-color: #1E232F;
-        border-radius: 10px;
+        background-color: rgba(17, 24, 39, 0.8);
+        border: 1px solid rgba(255, 215, 0, 0.5);
+        border-radius: 15px;
         padding: 20px;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
         margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
     }
     .metric-card h3 {
-        color: #A0A5B1;
+        color: #A0A5B1 !important;
         font-size: 14px !important;
         margin-bottom: 5px;
     }
     .metric-card p {
-        color: #00FF7F;
+        color: #FFD700;
         font-size: 28px !important;
         font-weight: bold;
         margin: 0;
     }
     
-    /* 推荐结果卡片 */
+    /* 推荐结果卡片：三种颜色的金边 */
     .result-card {
-        background-color: #1E232F;
-        border-radius: 10px;
-        padding: 15px;
+        background-color: rgba(17, 24, 39, 0.9);
+        border-radius: 12px;
+        padding: 20px;
         margin-bottom: 15px;
-        border-left: 5px solid #444;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.5);
     }
-    .result-freq { border-left-color: #00BFFF; }
-    .result-markov { border-left-color: #FFD700; }
-    .result-random { border-left-color: #FF4500; }
+    .result-freq { border: 1px solid rgba(0, 191, 255, 0.6); border-left: 5px solid #00BFFF; }
+    .result-markov { border: 1px solid rgba(255, 215, 0, 0.6); border-left: 5px solid #FFD700; }
+    .result-random { border: 1px solid rgba(255, 69, 0, 0.6); border-left: 5px solid #FF4500; }
     
-    /* 按钮样式 */
+    /* 按钮：红底金字 */
     .stButton>button {
         width: 100%;
-        background-color: #FF4B4B;
-        color: white;
+        background: linear-gradient(90deg, #8B0000 0%, #FF4500 100%);
+        color: #FFD700;
+        border: 1px solid #FFD700;
         border-radius: 10px;
-        border: none;
         padding: 15px;
         font-size: 18px !important;
         font-weight: bold;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    }
+    .stButton>button:hover {
+        color: white;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1>🎰 4D 预测助手 (V6.2 UI版)</h1>", unsafe_allow_html=True)
+st.markdown("<h1>👑 4D 预测助手 (黑金 VIP 版) 👑</h1>", unsafe_allow_html=True)
 
 @st.cache_resource
 def init_connection():
@@ -173,9 +190,9 @@ with tab1:
                 st.error(f"❌ 数据库写入失败: {e}")
                 
             st.markdown("### 🏆 推荐结果")
-            st.markdown(f'<div class="result-card result-freq"><b>🔵 频率模型:</b> {", ".join(top10_freq)}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-card result-markov"><b>🟡 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="result-card result-random"><b>🔴 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-freq"><b style="color:#00BFFF;">💎 频率模型:</b> {", ".join(top10_freq)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-markov"><b style="color:#FFD700;">👑 马尔可夫模型:</b> {", ".join(top10_markov)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="result-card result-random"><b style="color:#FF4500;">🎲 随机对照组:</b> {", ".join(top10_random)}</div>', unsafe_allow_html=True)
 
 with tab2:
     st.markdown("<h2>录入真实开奖与对账</h2>", unsafe_allow_html=True)
@@ -225,12 +242,12 @@ with tab2:
         
         if recent:
             for r in recent:
-                status_color = "green" if r['is_hit'] else "gray"
-                model_color = "red" if r['model'] == "Random" else "blue"
+                status_color = "#FFD700" if r['is_hit'] else "#6B7280"
+                model_color = "#FF4500" if r['model'] == "Random" else "#00BFFF"
                 st.markdown(f"""
-                <div style='border: 1px solid #444; padding: 10px; border-radius: 8px; margin-bottom: 10px;'>
-                    <p style='margin: 0; font-size: 0.8rem; color: #aaa;'>预测时间: {r['prediction_time']} | 模型: <span style='color:{model_color};'>{r['model']}</span></p>
-                    <p style='margin: 5px 0; font-size: 0.9rem;'><b>Top10:</b> {r['top10']}</p>
+                <div style='border: 1px solid rgba(255,215,0,0.2); background-color: rgba(17, 24, 39, 0.6); padding: 15px; border-radius: 10px; margin-bottom: 10px;'>
+                    <p style='margin: 0; font-size: 0.8rem; color: #A0A5B1;'>预测时间: {r['prediction_time']} | 模型: <span style='color:{model_color};'>{r['model']}</span></p>
+                    <p style='margin: 5px 0; font-size: 1rem; color: #E5E7EB;'><b>Top10:</b> {r['top10']}</p>
                     <p style='margin: 0; font-size: 0.9rem; color: {status_color};'><b>开奖号:</b> {r['actual_prize'] if r['actual_prize'] else '待开奖'} | <b>命中: {r['is_hit']}</b></p>
                 </div>
                 """, unsafe_allow_html=True)
